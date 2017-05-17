@@ -1,16 +1,10 @@
 import datetime
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth import get_user_model
 from django.template.defaultfilters import slugify
-from managers import QuestionManager
-
-from django.conf import settings
-try:
-    from django.contrib.auth import get_user_model
-    User = settings.AUTH_USER_MODEL
-except ImportError:
-    from django.contrib.auth.models import User
+from .managers import QuestionManager
+from django.contrib.auth import get_user_model
+from sorl.thumbnail import ImageField
 
 
 class Topic(models.Model):
@@ -18,9 +12,14 @@ class Topic(models.Model):
     Generic Topics for FAQ question grouping
     """
     name = models.CharField(_('name'), max_length=150)
+    description = models.TextField(help_text=_('Description of topic'))
     slug = models.SlugField(_('slug'), max_length=150)
-    sort_order = models.IntegerField(_('sort order'), default=0,
-        help_text=_('The order you would like the topic to be displayed.'))
+    image = ImageField(upload_to='faq-images/topics/', null=True)
+    sort_order = models.IntegerField(
+        _('sort order'),
+        default=0,
+        help_text=_('The order you would like the topic to be displayed.')
+    )
 
     def get_absolute_url(self):
         return '/faq/' + self.slug
@@ -30,41 +29,50 @@ class Topic(models.Model):
         verbose_name_plural = _("Topics")
         ordering = ['sort_order', 'name']
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
+
 
 class Question(models.Model):
     HEADER = 2
     ACTIVE = 1
     INACTIVE = 0
     STATUS_CHOICES = (
-        (ACTIVE,    _('Active')),
-        (INACTIVE,  _('Inactive')),
-        (HEADER,    _('Group Header')),
+        (ACTIVE, _('Active')),
+        (INACTIVE, _('Inactive')),
+        (HEADER, _('Group Header')),
     )
 
     text = models.TextField(_('question'), help_text=_('The actual question itself.'))
     answer = models.TextField(_('answer'), blank=True, help_text=_('The answer text.'))
     topic = models.ForeignKey(Topic, verbose_name=_('topic'), related_name='questions')
     slug = models.SlugField(_('slug'), max_length=100)
-    status = models.IntegerField(_('status'),
+    status = models.IntegerField(
+        _('status'),
         choices=STATUS_CHOICES, default=INACTIVE,
         help_text=_("Only questions with their status set to 'Active' will be "
                     "displayed. Questions marked as 'Group Header' are treated "
-                    "as such by views and templates that are set up to use them."))
+                    "as such by views and templates that are set up to use them.")
+    )
 
-    protected = models.BooleanField(_('is protected'), default=False,
-        help_text=_("Set true if this question is only visible by authenticated users."))
+    protected = models.BooleanField(
+        _('is protected'), default=False,
+        help_text=_("Set true if this question is only visible by authenticated users.")
+    )
 
-    sort_order = models.IntegerField(_('sort order'), default=0,
-        help_text=_('The order you would like the question to be displayed.'))
+    sort_order = models.IntegerField(
+        _('sort order'), default=0,
+        help_text=_('The order you would like the question to be displayed.')
+    )
 
     created_on = models.DateTimeField(_('created on'), default=datetime.datetime.now)
     updated_on = models.DateTimeField(_('updated on'))
-    created_by = models.ForeignKey(User, verbose_name=_('created by'),
-        null=True, related_name="+")
-    updated_by = models.ForeignKey(User, verbose_name=_('updated by'),
-        null=True, related_name="+")
+    created_by = models.ForeignKey(
+        get_user_model(), verbose_name=_('created by'), null=True, related_name="+"
+    )
+    updated_by = models.ForeignKey(
+        get_user_model(), verbose_name=_('updated by'), null=True, related_name="+"
+    )
 
     objects = QuestionManager()
 
@@ -73,7 +81,7 @@ class Question(models.Model):
         verbose_name_plural = _("Frequently asked questions")
         ordering = ['sort_order', 'created_on']
 
-    def __unicode__(self):
+    def __str__(self):
         return self.text
 
     def save(self, *args, **kwargs):

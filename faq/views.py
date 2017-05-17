@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 from django.db.models import Max
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.core.urlresolvers import reverse
 from django.contrib import messages
-from django.http import Http404
-from django.shortcuts import redirect, render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.views.generic import ListView, DetailView, TemplateView, CreateView
 from .models import Question, Topic
 from .forms import SubmitFAQForm
+
 
 class TopicList(ListView):
     model = Topic
@@ -32,12 +32,14 @@ class TopicList(ListView):
         # as long as that model has a many-to-one to something called "questions"
         # with an "updated_on" field). So this magic is the price we pay for
         # being generic.
-        last_updated = (data['object_list']
-                            .annotate(updated=Max('questions__updated_on'))
-                            .aggregate(Max('updated')))
+        last_updated = (
+            data['object_list'].annotate(
+                updated=Max('questions__updated_on')
+            ).aggregate(Max('updated')))
 
         data.update({'last_updated': last_updated['updated__max']})
         return data
+
 
 class TopicDetail(DetailView):
     model = Topic
@@ -50,13 +52,16 @@ class TopicDetail(DetailView):
         qs = self.object.questions.active()
         if self.request.user.is_anonymous():
             qs = qs.exclude(protected=True)
+        qs = qs.filter(topic=self.object)
 
         data = super(TopicDetail, self).get_context_data(**kwargs)
         data.update({
             'questions': qs,
             'last_updated': qs.aggregate(updated=Max('updated_on'))['updated'],
+            'topic_list': Topic.objects.all(),
         })
         return data
+
 
 class QuestionDetail(DetailView):
     queryset = Question.objects.active()
@@ -75,6 +80,7 @@ class QuestionDetail(DetailView):
 
         return qs
 
+
 class SubmitFAQ(CreateView):
     model = Question
     form_class = SubmitFAQForm
@@ -90,7 +96,8 @@ class SubmitFAQ(CreateView):
 
     def form_valid(self, form):
         response = super(SubmitFAQ, self).form_valid(form)
-        messages.success(self.request,
+        messages.success(
+            self.request,
             _("Your question was submitted and will be reviewed by for inclusion in the FAQ."),
             fail_silently=True,
         )
@@ -103,6 +110,7 @@ class SubmitFAQ(CreateView):
             return self.success_url
         else:
             return reverse(self.success_view_name)
+
 
 class SubmitFAQThanks(TemplateView):
     template_name = "faq/submit_thanks.html"
