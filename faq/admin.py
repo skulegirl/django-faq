@@ -12,7 +12,7 @@ class QuestionAdmin(admin.ModelAdmin):
     list_display = ['text', 'topic', 'sort_order', 'updated_by', 'updated_on', 'status', ]
     list_editable = ['sort_order', 'status']
     list_filter = ('topic', 'status')
-    fields = ('text', 'answer', 'topic', 'slug', 'status', 'protected', 'sort_order')
+    fields = ('text', 'answer', 'topic', 'slug', 'status', 'protected', 'sort_order', 'html_answer')
     prepopulated_fields = {'slug': ('text',)}
 
     def save_model(self, request, obj, form, change):

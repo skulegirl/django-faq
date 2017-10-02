@@ -65,6 +65,11 @@ class Question(models.Model):
         help_text=_('The order you would like the question to be displayed.')
     )
 
+    html_answer = models.BooleanField(
+        default=False,
+        help_text=_("Set true if the answer is in full html and does not need to have linebreaks added")
+    )
+
     created_on = models.DateTimeField(_('created on'), default=datetime.datetime.now)
     updated_on = models.DateTimeField(_('updated on'))
     created_by = models.ForeignKey(
